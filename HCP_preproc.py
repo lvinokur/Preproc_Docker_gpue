@@ -30,6 +30,9 @@ app.cmdline.add_argument('-extra_eddy_args', help='generic string of arguments t
                                           ' and and subsequently to the run_eddy.sh script and finally to the command '
                                           ' that actually invokes the eddy binary')
 
+app.cmdline.add_argument('--no_denoise', action='store_false', help='Do not perform denoising and unringing')
+
+
 app.parse()
 
 
@@ -62,7 +65,7 @@ if app.args.eddy_version:
 eddy_args = ''
 if app.args.extra_eddy_args:
   eddy_args = '-extra_eddy_args ' + app.args.extra_eddy_args
-  print eddy_args
+  print(eddy_args)
 
 
 # running preproceding pipeline
@@ -70,7 +73,7 @@ if app.args.extra_eddy_args:
 print('Input Directory: ' + app.args.in_dir)
 print('Output Directory: ' + app.args.output_dir)
 print('Subjects list : ')
-print subject_dirs
+print(subject_dirs)
 
 
 for label in subjects_to_analyze:
@@ -82,40 +85,50 @@ for label in subjects_to_analyze:
   # Read all unprocessed DWI acquisitions
   all_unproc_images = glob.glob(os.path.join(unproc_dir, '*LR.nii*')) + glob.glob(os.path.join(unproc_dir, '*RL.nii*'))
 
-  for unproc_image in all_unproc_images:
+  if app.args.no_denoise:
+    for unproc_image in all_unproc_images:
+      print ('Performing Denoising ')
+      #RUN denoise
+      dn_image = os.path.basename(unproc_image).split('.')[0] + '_dn.nii.gz'
+      dn_image = os.path.join(unproc_dir, dn_image)
+      # print('dwidenoise'  + ' ' + unproc_image + ' ' + dn_image + '.nii.gz')
+      run.command('dwidenoise'  + ' ' + unproc_image + ' ' + dn_image + ' -force')
 
-    #RUN denoise
-    dn_image = os.path.basename(unproc_image).split('.')[0] + '_dn.nii.gz'
-    dn_image = os.path.join(unproc_dir, dn_image)
-    # print('dwidenoise'  + ' ' + unproc_image + ' ' + dn_image + '.nii.gz')
-    run.command('dwidenoise'  + ' ' + unproc_image + ' ' + dn_image + ' -force')
+      #RUN unring
+      print ('Performing removal of gibbs ringing ')
+      dg_image = os.path.basename(unproc_image).split('.')[0] + '_dndg.nii.gz'
+      dg_image = os.path.join(unproc_dir,dg_image)
+      # print('mrdegibbs'  + ' ' + dn_image + '.nii.gz' + ' ' + dg_image + '.nii.gz')
+      run.command('mrdegibbs'  + ' ' +  dn_image + ' ' + dg_image + ' -force')
 
-    #RUN unring
-    dg_image = os.path.basename(unproc_image).split('.')[0] + '_dndg.nii.gz'
-    dg_image = os.path.join(unproc_dir,dg_image)
-    # print('mrdegibbs'  + ' ' + dn_image + '.nii.gz' + ' ' + dg_image + '.nii.gz')
-    run.command('mrdegibbs'  + ' ' +  dn_image + ' ' + dg_image + ' -force')
-
-    # Rename bvals and bvecs files accordingly to the preprocessed file
-    bvals =  os.path.basename(unproc_image).split('.')[0] + '.bval'
-    new_bvals = os.path.basename(dg_image).split('.')[0] + '.bval'
-    bvecs =  os.path.basename(unproc_image).split('.')[0] + '.bvec'
-    new_bvecs = os.path.basename(dg_image).split('.')[0] + '.bvec'
-    # print(os.path.join(unproc_dir,bvals),os.path.join(unproc_dir,new_bvals))
-    # print(os.path.join(unproc_dir,bvecs),os.path.join(unproc_dir,new_bvecs))
-    os.rename(os.path.join(unproc_dir,bvals),os.path.join(unproc_dir,new_bvals))
-    os.rename(os.path.join(unproc_dir,bvecs),os.path.join(unproc_dir,new_bvecs))
+      # Rename bvals and bvecs files accordingly to the preprocessed file
+      bvals =  os.path.basename(unproc_image).split('.')[0] + '.bval'
+      new_bvals = os.path.basename(dg_image).split('.')[0] + '.bval'
+      bvecs =  os.path.basename(unproc_image).split('.')[0] + '.bvec'
+      new_bvecs = os.path.basename(dg_image).split('.')[0] + '.bvec'
+      # print(os.path.join(unproc_dir,bvals),os.path.join(unproc_dir,new_bvals))
+      # print(os.path.join(unproc_dir,bvecs),os.path.join(unproc_dir,new_bvecs))
+      os.rename(os.path.join(unproc_dir,bvals),os.path.join(unproc_dir,new_bvals))
+      os.rename(os.path.join(unproc_dir,bvecs),os.path.join(unproc_dir,new_bvecs))
 
 
-  #RUN HCP Pipelines
+    #RUN HCP Pipelines
   print('performing HCP-Pipelines preprocessing')
   pe_dir = '1'
-  all_pos_images = glob.glob(os.path.join(unproc_dir, '*RL_dndg.nii*'))
-  all_pos_images.sort()
-  all_pos_images = '@'.join(all_pos_images)
-  all_neg_images = glob.glob(os.path.join(unproc_dir, '*LR_dndg.nii*'))
-  all_neg_images.sort()
-  all_neg_images = '@'.join(all_neg_images)
+  if app.args.no_denoise:
+    all_pos_images = glob.glob(os.path.join(unproc_dir, '*RL_dndg.nii*'))
+    all_pos_images.sort()
+    all_pos_images = '@'.join(all_pos_images)
+    all_neg_images = glob.glob(os.path.join(unproc_dir, '*LR_dndg.nii*'))
+    all_neg_images.sort()
+    all_neg_images = '@'.join(all_neg_images)
+  else:
+    all_pos_images = glob.glob(os.path.join(unproc_dir, '*RL.nii*'))
+    all_pos_images.sort()
+    all_pos_images = '@'.join(all_pos_images)
+    all_neg_images = glob.glob(os.path.join(unproc_dir, '*LR.nii*'))
+    all_neg_images.sort()
+    all_neg_images = '@'.join(all_neg_images)
   gd_coeffs = '/Pipelines/global/config/coeff_SC72C_Skyra.grad'
   echo_spacing = '0.78'
   b0_maxbval = '50'
@@ -125,7 +138,7 @@ for label in subjects_to_analyze:
   # + ' --b0maxbval=' + b0_maxbval + ' ' + eddy_args)
 
   # Run pre Eddy steps
-  print 'Running Pre-Eddy Steps -- > '
+  print( 'Running Pre-Eddy Steps -- > ')
   run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline_PreEddy.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' +
     ' --PEdir=' + pe_dir + ' --posData=' +  all_pos_images + ' --negData=' + all_neg_images  + ' --echospacing=' + echo_spacing + ' --b0maxbval=' + b0_maxbval )
 
@@ -134,13 +147,13 @@ for label in subjects_to_analyze:
   shutil.copy(os.path.join(app.args.in_dir,label,'Diffusion','topup','nodif_brain_mask.nii.gz'),os.path.join(app.args.in_dir,label,'Diffusion','eddy'))
 
   # Run eddy:
-  print 'Running Eddy -- > '
+  print ('Running Eddy -- > ')
   run.command( '/Pipelines/DiffusionPreprocessing/scripts/run_eddy.sh' + cuda + ' ' +
      ' -w ' +  os.path.join(app.args.in_dir,label,'Diffusion','eddy') + ' --fwhm=0')
 
 
   # Run post eddy
-  print 'Running post Eddy steps -- > '
+  print ('Running post Eddy steps -- > ')
   run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline_PostEddy.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' +
    ' --gdcoeffs=' + gd_coeffs)
 
