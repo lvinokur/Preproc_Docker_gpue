@@ -133,29 +133,29 @@ for label in subjects_to_analyze:
   echo_spacing = '0.78'
   b0_maxbval = '50'
   # Specify Extra Eddy Argumentss here
-  # run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' + ' --PEdir=' + pe_dir +
-  # ' --posData=' +  all_pos_images + ' --negData=' + all_neg_images + ' --gdcoeffs=' + gd_coeffs + ' --echospacing=' + echo_spacing
-  # + ' --b0maxbval=' + b0_maxbval + ' ' + eddy_args)
+  run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' + ' --PEdir=' + pe_dir +
+  ' --posData=' +  all_pos_images + ' --negData=' + all_neg_images + ' --gdcoeffs=' + gd_coeffs + ' --echospacing=' + echo_spacing
+  + ' --b0maxbval=' + b0_maxbval + ' ' + eddy_args)
 
-  # Run pre Eddy steps
-  print( 'Running Pre-Eddy Steps -- > ')
-  run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline_PreEddy.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' +
-    ' --PEdir=' + pe_dir + ' --posData=' +  all_pos_images + ' --negData=' + all_neg_images  + ' --echospacing=' + echo_spacing + ' --b0maxbval=' + b0_maxbval )
-
-
-  # copy nodif brain mask
-  shutil.copy(os.path.join(app.args.in_dir,label,'Diffusion','topup','nodif_brain_mask.nii.gz'),os.path.join(app.args.in_dir,label,'Diffusion','eddy'))
-
-  # Run eddy:
-  print ('Running Eddy -- > ')
-  run.command( '/Pipelines/DiffusionPreprocessing/scripts/run_eddy.sh' + cuda + ' ' +
-     ' -w ' +  os.path.join(app.args.in_dir,label,'Diffusion','eddy') + ' --fwhm=0')
-
-
-  # Run post eddy
-  print ('Running post Eddy steps -- > ')
-  run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline_PostEddy.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' +
-   ' --gdcoeffs=' + gd_coeffs)
+  # # Run pre Eddy steps
+  # print( 'Running Pre-Eddy Steps -- > ')
+  # run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline_PreEddy.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' +
+  #   ' --PEdir=' + pe_dir + ' --posData=' +  all_pos_images + ' --negData=' + all_neg_images  + ' --echospacing=' + echo_spacing + ' --b0maxbval=' + b0_maxbval )
+  #
+  #
+  # # copy nodif brain mask
+  # shutil.copy(os.path.join(app.args.in_dir,label,'Diffusion','topup','nodif_brain_mask.nii.gz'),os.path.join(app.args.in_dir,label,'Diffusion','eddy'))
+  #
+  # # Run eddy:
+  # print ('Running Eddy -- > ')
+  # run.command( '/Pipelines/DiffusionPreprocessing/scripts/run_eddy.sh' + cuda + ' ' +
+  #    ' -w ' +  os.path.join(app.args.in_dir,label,'Diffusion','eddy') + ' --fwhm=0')
+  #
+  #
+  # # Run post eddy
+  # print ('Running post Eddy steps -- > ')
+  # run.command ('/Pipelines/DiffusionPreprocessing/DiffPreprocPipeline_PostEddy.sh' + ' --path=' + app.args.in_dir + ' --subject=' + label + ' --dwiname=Diffusion' +
+  #  ' --gdcoeffs=' + gd_coeffs)
 
 
 
